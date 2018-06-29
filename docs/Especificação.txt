@@ -1,0 +1,25 @@
+Descriçãoo:
+
+Survive
+Voce foi abandonado em um lugar para morrer, mas não está sozinho..
+você precisará sobreviver a muitos desafios, é matar ou correr.
+
+Funcionalidades:
+- O usuário deverá escolher um nome para seu heroi, uma imagem.
+- O usuário receberá pontos para distribuir em seu personagem ao criar.
+
+
+Telas:
+- Cadastrar o usuário, entrar e acessar um servidor via django.
+- Criar mapa com pygame.
+
+Regras:
+- Ninguem consegue ver o mapa inteiro, somente uma pequena area ao seu redor.
+- Cada ação do sobrevivente consome sua energia, você pode recupera-la descansando, comendo e bebendo.
+- Eliminar outros sobreviventes te da experiencia e permite evoluir seus atributos basicos.
+- Para descansar o sobrevivente não se move.
+- Agua e alimento são distribuidos pelo mapa aleatoriamente mas nem sempre o usuário consegue encontrar (depende da habilidade).
+- Sobreviventes mais fracos podem se juntar para eliminar um sobrevivente mais forte.
+-
+
+Seu heroi pode andar, correr, atacar, defender, descansar, comer, beber.
