@@ -1,4 +1,8 @@
+import json
 import os
+import socket
+import threading
+
 import pygame
 from survive import settings
 from survive.settings import BASE_DIR
@@ -221,24 +225,68 @@ class Manager():
             self.game.screen.blit(image, imagerect)
 
 
-class Game(KeyBoardControll):
+class ClientGame(threading.Thread, socket.socket):
+    def __init__(self, port=9000):
+        socket.socket.__init__(self, type=socket.SOCK_DGRAM)
+        threading.Thread.__init__(self, name='ClientHandler')
+        self.settimeout(2)
+        self.bind(('localhost', port))
+        self.setDaemon(True)
+
+    def send_client_command(self, data):
+        # self.sendto(pongserver.server.PongServer.COMMAND_CLIENT_CONNECT.encode('utf-8'), self.server_address)
+        if data is None:
+            print('Unable to send client command: None!')
+            return
+        self.sendto(data, (self.server_address,9000))
+        return
+
+
+
+class ServerGame(threading.Thread, socket.socket):
+    def __init__(self, port=9000):
+        threading.Thread.__init__(self, name='Server thread')
+        socket.socket.__init__(self, type=socket.SOCK_DGRAM)
+        self.port = port
+        self.bind(('', self.port))
+
+        self.clients = []
+        self.player_addresses = dict()
+        self._current_player_to_assign = 1
+        self.client_handlers = []
+
+
+
+class Game(ClientGame, ServerGame, KeyBoardControll):
+    BUFFER_SIZE = 4096
+    server_address = "127.0.0.1"
+    game_type = "CLIENT"
+
     elements = []
     objects  = []
     size = [800,600]
-    fps = 8
+    fps = 10
 
     player = None
 
-    def __init__(self):
+    def __init__(self, type="CLIENT"):
         self.setup()
         self.manager = Manager(self)
         self.create_map()
-
 
     def create_map(self):
         self.manager.create_simple_tree(200,290,160,90)
 
     def setup(self):
+        if self.game_type == "CLIENT":
+            ClientGame.__init__(self)
+            print('Hosting at:', self.getsockname())
+            print('Starting server.')
+        else:
+            ServerGame.__init__(self)
+            print('Client:', self.getsockname())
+            print('Start connection..')
+
         pygame.init()
         pygame.display.set_caption("Survive!")
         self.screen = pygame.display.set_mode(self.size)
@@ -251,6 +299,17 @@ class Game(KeyBoardControll):
         self.done = True
         while self.done:
             self.verify_events()
+
+            if self.game_type == "SERVER":
+                print("AGUARDAR ALGUM EVENTO")
+            else:
+                data = b'position:200,100'
+                #data = json.dumps(message)
+                self.send_client_command(data)
+
+
+
+
             self.screen.fill(WHITE)
             self.manager.draw_objects()
             self.manager.draw_elements()
@@ -260,4 +319,7 @@ class Game(KeyBoardControll):
 
 
 
-Game().start()
+#server = Game(type="SERVER")
+#server.start()
+game = Game(type="CLIENT")
+game.start()
