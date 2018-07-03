@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'djangobower','compressor',
+    #'otma_core.security.backup'
+    'apps.core.authentication',
+    'apps.core.communications',
 ]
 
 MIDDLEWARE = [
