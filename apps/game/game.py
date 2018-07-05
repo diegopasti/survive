@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import socket
 import threading
 
@@ -161,8 +162,6 @@ class Sequence:
         return (self.width,self.height)
 
 
-
-
 class Animations:
 
     directions = {}
@@ -221,11 +220,14 @@ class Character(Element):
     walking = None
     destination = None
 
-    def __init__(self, char_number):
+    def __init__(self, player_name, char_number):
+        self.name = player_name
         self.image_path = os.path.join(settings.BASE_DIR, 'static/images/beta/chars/'+str(char_number)+'/')
         simple_directions_images = self.image_path+"basic.png"
         diagonal_directions_image = self.image_path+"diagonal.png"
-        self.position = Coordinate(0, 0)
+        init_x = random.randint(50, 750)
+        init_y = random.randint(50, 550)
+        self.position = Coordinate(init_x, init_y)
         self.animations['walking'] = Animations(simple_directions_images,diagonal_directions_image)
         self.current_animation = self.animations['walking']
         self.set_size(self.current_animation.current_image.get_width() / 8, self.current_animation.current_image.get_height() / 4)
@@ -353,8 +355,10 @@ class Character(Element):
         self.current_animation.change_direction(SOUTH)
         #self.direction = SOUTH
 
-
-
+    def get_data(self):
+        position = str(self.position.x)+","+str(self.position.y)
+        data = {"name":self.name,"position":position}
+        return data
 
 
 class KeyBoardControll:
@@ -450,6 +454,11 @@ class Manager():
     def __init__(self, game):
         self.game = game
 
+    def create_player(self,player_name, character_number):
+        player = Character(player_name,character_number)
+        game.elements.append(player)
+        return player
+
     def create_object(self, object):
         self.game.objects.append(object)
 
@@ -467,7 +476,7 @@ class Manager():
             imagerect = item.image.get_rect()
             self.game.screen.blit(image, imagerect)
 
-
+"""
 class ClientGame(threading.Thread, socket.socket):
     def __init__(self, port=9000):
         socket.socket.__init__(self, type=socket.SOCK_DGRAM)
@@ -498,74 +507,103 @@ class ServerGame(threading.Thread, socket.socket):
         self._current_player_to_assign = 1
         self.client_handlers = []
 
+"""
 
 
-class Game(ClientGame, ServerGame, KeyBoardControll):
+class ClientGame:
+
+    def __init__(self, server_ip, server_port):
+        self.server_ip = server_ip
+        self.server_port = server_port
+        self.client_game = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.conect()
+
+    def get_data_from_server(self):
+        response = self.client_game.recv(4096).decode()
+        print("VEJA O QUE VEIO: ",response)
+        response = json.loads(response)
+        print("server:",response)
+        return response
+
+    def send_data_to_server(self, request):
+        print("client:",request)
+        self.send(request)
+
+    def conect(self):
+        self.client_game.connect((self.server_ip, int(self.server_port)))
+
+    def send(self, request_dict):
+        data = json.dumps(request_dict)
+        self.client_game.sendall(bytes(data, 'UTF-8'))
+
+    def close(self):
+        self.client_game.close()
+
+class Game(ClientGame, KeyBoardControll):
     BUFFER_SIZE = 4096
     server_address = "127.0.0.1"
-    game_type = "CLIENT"
+    server_port = "9000"
+    data_game = {}
 
     elements = []
     objects  = []
     size = [800,600]
-    fps = 6
+    fps = 1
 
     player = None
 
     def __init__(self, type="CLIENT"):
         self.setup()
         self.manager = Manager(self)
-        self.create_map()
+        #self.create_map()
 
     def create_map(self):
         #self.manager.create_simple_tree(200,290,90,160)
         pass
 
     def setup(self):
-        if self.game_type == "CLIENT":
-            ClientGame.__init__(self)
-            print('Hosting at:', self.getsockname())
-            print('Starting server.')
-        else:
-            ServerGame.__init__(self)
-            print('Client:', self.getsockname())
-            print('Start connection..')
-
+        ClientGame.__init__(self, self.server_address,self.server_port)
+        print('Hosting at:', self.client_game.getsockname())
+        print('Starting Client.')
         pygame.init()
         pygame.display.set_caption("Survive!")
         self.screen = pygame.display.set_mode(self.size)
         self.clock = pygame.time.Clock()
         pygame.mouse.set_visible(True)
+        #request_dict = {"command":"create_player", "player":self.data_game}
+        #self.send_data_to_server(request_dict)
+        #self.data_game = self.get_data_from_server()
 
     def start(self):
-        self.player = Character(2)
-
-
-        self.elements.append(self.player)
         self.done = True
+        self.player = self.manager.create_player("Diego",3)
+        self.send_data_to_server({"command":"create_player","player":self.player.get_data()})
+
         while self.done:
+            backup_data = self.data_game
             self.verify_events()
+            self.data_game[self.player.name] = self.player.get_data()
+            self.data_game['command']= 'event'
+            self.send_data_to_server(self.data_game)
 
-            if self.game_type == "SERVER":
-                print("AGUARDAR ALGUM EVENTO")
-            else:
-                data = b'position:200,100'
-                #data = json.dumps(message)
-                self.send_client_command(data)
-
-
-
+            response = self.get_data_from_server()
 
             self.screen.fill(WHITE)
             self.manager.draw_objects()
-            self.manager.draw_elements()
+            if response["command"]=="event" and response["status"]=="accept":
+                print("client: Request was accepted")
+                self.manager.draw_elements()
+            else:
+                print("client: Request not accepted")
+                self.data_game = backup_data
+                self.manager.draw_elements()
             pygame.display.flip()
             self.clock.tick(self.fps)
+        self.close()
         pygame.quit()
+        self.send_data_to_server({"command":"exit","player":self.player.get_data()})
 
 
 
-#server = Game(type="SERVER")
-#server.start()
 game = Game(type="CLIENT")
 game.start()
