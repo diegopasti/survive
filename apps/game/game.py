@@ -1,14 +1,11 @@
-import json
-import os
+from apps.main.utils import Coordinate
+from survive.settings import BASE_DIR
+from survive import settings
 import random
 import socket
-import threading
-
 import pygame
-
-from apps.core.utils import Coordinate
-from survive import settings
-from survive.settings import BASE_DIR
+import json
+import os
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -25,15 +22,26 @@ NORTH_EAST = 6
 EAST = 7
 SOUTH_EAST = 8
 
-
 # Define other variables
 CHARACTERS_DIRS = os.path.join(settings.BASE_DIR, 'static/images/chars/')
 
 
 class Object:
+    image_path = None
+    image = None
+
     width = None
     height = None
-    position = Coordinate(0,0)
+    position = None
+
+
+
+    def __init__(self,x,y,w,h):
+        self.image = pygame.image.load(self.image_path)
+        self.image = pygame.transform.scale(self.image, (w, h))
+        self.height = self.image.get_height()
+        self.width = self.image.get_width()
+        self.position = Coordinate(x,y)
 
     def get_position(self):
         return (self.position.x, self.position.y)
@@ -51,25 +59,13 @@ class Object:
 
 
 class Tree(Object):
-    image_path = None
-    image = None
-
-    def __init__(self,x,y,w,h):
-        self.image = pygame.image.load(self.image_path)
-        self.image = pygame.transform.scale(self.image, (w, h))
-        self.height = self.image.get_height()
-        self.width = self.image.get_width()
-
-        self.set_position(x,y)
-
+    pass
 
 class Pine(Tree):
     image_path = BASE_DIR+"/static/images/trees/_tree_13/_tree_13_70000.png"
 
-
 class SimpleTree(Tree):
     image_path = BASE_DIR +"/static/images/trees/_tree_01/_tree_01_70000.png"
-
 
 class Element(Object):
     image_number = None
@@ -80,6 +76,7 @@ class Element(Object):
 
     sprite_number = 1
     direction = NORTH
+    destination = None
     
     def update(self):
         pass
@@ -110,6 +107,11 @@ class Element(Object):
         return self.sprite_number
     """
 
+    def get_destination(self):
+        if self.destination is not None:
+            return (self.destination.x,self.destination.y)
+        else:
+            return None
 
 class Sequence:
 
@@ -220,14 +222,18 @@ class Character(Element):
     walking = None
     destination = None
 
-    def __init__(self, player_name, char_number):
+    def __init__(self, player_name, char_number, position=None):
         self.name = player_name
+        self.char_number = char_number
         self.image_path = os.path.join(settings.BASE_DIR, 'static/images/beta/chars/'+str(char_number)+'/')
         simple_directions_images = self.image_path+"basic.png"
         diagonal_directions_image = self.image_path+"diagonal.png"
-        init_x = random.randint(50, 750)
-        init_y = random.randint(50, 550)
-        self.position = Coordinate(init_x, init_y)
+        if position is None:
+            init_x = random.randint(50, 750)
+            init_y = random.randint(50, 550)
+            self.position = Coordinate(init_x, init_y)
+        else:
+            self.position = position
         self.animations['walking'] = Animations(simple_directions_images,diagonal_directions_image)
         self.current_animation = self.animations['walking']
         self.set_size(self.current_animation.current_image.get_width() / 8, self.current_animation.current_image.get_height() / 4)
@@ -248,7 +254,7 @@ class Character(Element):
             self.destination_time = self.destination_distance / self.speed
 
             variation_x = self.width/6
-            variation_y = self.height / 6
+            variation_y = self.height/6
 
 
             if self.destination_distance < 2:
@@ -294,12 +300,13 @@ class Character(Element):
                     self.stop()
             self.current_animation.update()
 
+
         else:
-            pass
-
-
-
+            #print("COMO MOVER O PERSONAGEM SE NAO SEI PRA ONDE ELE ESTA INDO? kk")
+            self.origin = self.get_center_image()
         screen.blit(self.current_animation.current_image, self.get_position(), self.current_animation.get_current_sprite())
+
+
 
         """if self.walking is not None:
             self.walk(self.current_animation.current_direction)
@@ -357,13 +364,17 @@ class Character(Element):
 
     def get_data(self):
         position = str(self.position.x)+","+str(self.position.y)
-        data = {"name":self.name,"position":position}
+        data = {"name":self.name,"char":self.char_number,"position":position,"destination":self.get_destination()}
         return data
+
+    def serialize(self):
+        return {'name': self.name, 'char': self.char_number, 'position': self.get_position()}
 
 
 class KeyBoardControll:
 
     def verify_events(self):
+        request_event = {}
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.done = False
@@ -371,6 +382,10 @@ class KeyBoardControll:
                 new_position = pygame.mouse.get_pos()
                 self.player.move_to(new_position)
 
+        request_event = {'player':self.player.name, 'command':'move', 'data':{'position':self.player.get_position(),'destination': self.player.get_destination()}}#'event':{'name':'move','position':new_position}}
+        return request_event
+
+        """
         keys = pygame.key.get_pressed()
         if keys[pygame.K_DOWN] and keys[pygame.K_LEFT]:
             self.player.walk(SOUTH_WEST)
@@ -397,7 +412,7 @@ class KeyBoardControll:
 
 
 
-        """
+        ""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.done = False
@@ -445,6 +460,7 @@ class KeyBoardControll:
                 # if event.type == pygame.MOUSEBUTTONNORTH:
                 #    pos = pygame.mouse.get_pos()
                 #    self.player.move_to(pos[0],pos[1])
+        ""
         """
 
 
@@ -454,9 +470,9 @@ class Manager():
     def __init__(self, game):
         self.game = game
 
-    def create_player(self,player_name, character_number):
-        player = Character(player_name,character_number)
-        game.elements.append(player)
+    def create_player(self,player_name, character_number, position=None):
+        player = Character(player_name,character_number,position)
+        game.elements[player_name] = player
         return player
 
     def create_object(self, object):
@@ -468,13 +484,14 @@ class Manager():
 
     def draw_elements(self):
         for item in self.game.elements:
-            item.update(self.game.screen)
+            self.game.elements[item].update(self.game.screen)
+            #item.update(self.game.screen)
 
     def draw_objects(self):
         for item in self.game.objects:
             image = item.image
             imagerect = item.image.get_rect()
-            self.game.screen.blit(image, imagerect)
+            self.game.screen.blit(image,(item.position.x,item.position.y), imagerect)
 
 """
 class ClientGame(threading.Thread, socket.socket):
@@ -518,15 +535,20 @@ class ClientGame:
         self.client_game = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.conect()
 
-    def get_data_from_server(self):
+    def get_data_from_server(self, log=True):
         response = self.client_game.recv(4096).decode()
-        print("VEJA O QUE VEIO: ",response)
         response = json.loads(response)
-        print("server:",response)
+        if log:
+            print("server:",response)
         return response
 
-    def send_data_to_server(self, request):
-        print("client:",request)
+    def send_data_to_server(self, request, log=True):
+        try:
+            request['event_counter'] = self.data_game['event_counter']
+        except:
+            request['event_counter'] = 0
+        if log:
+            print("client:",request)
         self.send(request)
 
     def conect(self):
@@ -545,21 +567,28 @@ class Game(ClientGame, KeyBoardControll):
     server_port = "9000"
     data_game = {}
 
-    elements = []
+    elements = {}
     objects  = []
     size = [800,600]
     fps = 1
 
     player = None
 
-    def __init__(self, type="CLIENT"):
+    def __init__(self):
         self.setup()
         self.manager = Manager(self)
-        #self.create_map()
+        self.create_map()
 
     def create_map(self):
+        tree1 = SimpleTree(200,290,90,160)
+        tree2 = SimpleTree(400, 290, 90, 160)
+
+        print('>>>',tree1.position.x)
+        print('>>>',tree2.position.x)
+        self.objects.append(tree1)
+        self.objects.append(tree2)
         #self.manager.create_simple_tree(200,290,90,160)
-        pass
+        #self.manager.create_simple_tree(400, 290, 90, 160)
 
     def setup(self):
         ClientGame.__init__(self, self.server_address,self.server_port)
@@ -570,40 +599,110 @@ class Game(ClientGame, KeyBoardControll):
         self.screen = pygame.display.set_mode(self.size)
         self.clock = pygame.time.Clock()
         pygame.mouse.set_visible(True)
-        #request_dict = {"command":"create_player", "player":self.data_game}
-        #self.send_data_to_server(request_dict)
-        #self.data_game = self.get_data_from_server()
 
-    def start(self):
+    def verify_data_server(self, log=True):
+        self.send_data_to_server({"command": "verify_server"},log=log)
+        return self.get_data_from_server(log=log)
+
+    def create_player(self, player_name, char_number):
+        player = self.manager.create_player(player_name, char_number)
+        self.send_data_to_server({"command": "create_player", "player": player.get_data()})
+        self.data_game = self.get_data_from_server()
+        return player
+
+    def start(self, player_name, char_number):
+        self.data_game = self.verify_data_server()
+        self.player = self.create_player(player_name, char_number)
         self.done = True
-        self.player = self.manager.create_player("Diego",3)
-        self.send_data_to_server({"command":"create_player","player":self.player.get_data()})
 
         while self.done:
-            backup_data = self.data_game
-            self.verify_events()
-            self.data_game[self.player.name] = self.player.get_data()
-            self.data_game['command']= 'event'
-            self.send_data_to_server(self.data_game)
 
-            response = self.get_data_from_server()
+            """
+                ENVIAR E RECEBER OS DADOS DO EVENTO DE ANDAR E DEPOIS TER UM COMANDO PRA PEGAR
+                AS ATUALIZACOES PRECISARIA USAR UM REQUEST SO.. POIS ASSIM DIMINUIMOS O NUMERO
+                DE ACESSO AO SERVIDOR.. MAS POR ENQUANTO VAI TER QUE FICAR ASSIM..
+                
+                EM VEZ DE RETORNAR SOMENTE A RESPOSTA DO EVENTO QUE GERAMOS, PRECISAMOS
+                TRAZER OS EVENTOS TODOS QUE FORAM RECEBIDOS LA.
+            """
+            request_events = self.verify_events()
+            if request_events['data']['destination'] != None:
+                self.send_data_to_server(request_events, log=False)
+                response_events = self.get_data_from_server()
+
+            self.data_game = self.verify_data_server(log=False)
+            #response_events = self.get_data_from_server()
+
+            if len(self.elements) != len(self.data_game['players']):
+                for item in self.data_game['players']:
+                    if item not in self.elements:
+                        if type(self.data_game['players'][item]['position']) == str:
+                            position_parts = self.data_game['players'][item]['position'].split(',')
+                        else:
+                            position_parts = self.data_game['players'][item]['position']
+
+                        if type(self.data_game['players'][item]['destination']) == str:
+                            destination_parts = self.data_game['players'][item]['destination'].split(',')
+                        else:
+                            destination_parts = self.data_game['players'][item]['destination']
+
+                        x = int(position_parts[0])
+                        y = int(position_parts[1])
+                        position = Coordinate(x, y)
+                        new_player = self.manager.create_player(self.data_game['players'][item]['name'], self.data_game['players'][item]['char'], position)
+
+                        if destination_parts is not None:
+                            dx = int(destination_parts[0])
+                            dy = int(destination_parts[1])
+                            new_player.destination = Coordinate(dx, dy)
+
+
+
+
+
+
+            self.screen.fill(WHITE)
+            self.manager.draw_objects()
+            self.manager.draw_elements()
+
+            #for item in self.elements:
+            #    self.data_game[item.name] = item.get_data()
+
+            #self.data_game['command']= 'update'
+            #self.send_data_to_server(self.data_game)
+            #response = self.get_data_from_server()
+
+            #if response
+            """
+            if response["events"]=="create_player" and response["status"]=="accept":
+                print("server:",response['events_values']['name'],"enter in game..")
+                new_player = response['events_values']['name']
+                position_part = response['events_values']['position'].split(",")
+                position = Coordinate(int(position_part[0]),int(position_part[1]))
+                new_player = self.manager.create_player(new_player, int(response['player']['char']),position)
+                self.data_game[new_player.name]=new_player.get_data()
 
             self.screen.fill(WHITE)
             self.manager.draw_objects()
             if response["command"]=="event" and response["status"]=="accept":
-                print("client: Request was accepted")
+                #print("client: Request was accepted")
                 self.manager.draw_elements()
             else:
-                print("client: Request not accepted")
-                self.data_game = backup_data
+                #print("client: Request not accepted")
+                #self.data_game = backup_data
                 self.manager.draw_elements()
+            """
             pygame.display.flip()
             self.clock.tick(self.fps)
+
+        self.send_data_to_server({"command": "exit", "player": self.player.get_data()})
         self.close()
         pygame.quit()
-        self.send_data_to_server({"command":"exit","player":self.player.get_data()})
 
+if __name__=="__main__":
+    import sys
+    player_name = sys.argv[1]
+    player_char = sys.argv[2]
 
-
-game = Game(type="CLIENT")
-game.start()
+    game = Game()
+    game.start(player_name, player_char)
