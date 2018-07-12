@@ -57,15 +57,47 @@ class Object:
         self.width = width
         self.height = heigth
 
+class Ground(Object):
+    image_path = BASE_DIR + "/static/images/tiles/grass-3.jpg"
 
 class Tree(Object):
     pass
 
 class Pine(Tree):
-    image_path = BASE_DIR+"/static/images/trees/_tree_13/_tree_13_70000.png"
+    image_path = BASE_DIR+"/static/images/trees/pine_tree/pine_tree.png"
 
-class SimpleTree(Tree):
-    image_path = BASE_DIR +"/static/images/trees/_tree_01/_tree_01_70000.png"
+class Pine2(Tree):
+    image_path = BASE_DIR+"/static/images/trees/pine_tree/pine_tree-2.png"
+
+class Pine3(Tree):
+    image_path = BASE_DIR+"/static/images/trees/pine_tree/pine_tree-3.png"
+
+class Birch(Tree):
+    image_path = BASE_DIR+ "/static/images/trees/birch_tree/birch_tree.png"
+
+class Birch2(Tree):
+    image_path = BASE_DIR+ "/static/images/trees/birch_tree/birch_tree-2.png"
+
+class Birch3(Tree):
+    image_path = BASE_DIR+ "/static/images/trees/birch_tree/birch_tree-3.png"
+
+class Oak(Tree):
+    image_path = BASE_DIR + "/static/images/trees/oak_tree/oak_tree.png"
+
+class Oak2(Tree):
+    image_path = BASE_DIR + "/static/images/trees/oak_tree/oak_tree-2.png"
+
+class Oak3(Tree):
+    image_path = BASE_DIR + "/static/images/trees/oak_tree/oak_tree-3.png"
+
+class Tropical(Tree):
+    image_path = BASE_DIR+ "/static/images/trees/tropical_tree/tropical_tree.png"
+
+class Tropical2(Tree):
+    image_path = BASE_DIR+ "/static/images/trees/tropical_tree/tropical_tree-2.png"
+
+class Tropical3(Tree):
+    image_path = BASE_DIR+ "/static/images/trees/tropical_tree/tropical_tree-3.png"
 
 class Element(Object):
     image_number = None
@@ -478,8 +510,12 @@ class Manager():
     def create_object(self, object):
         self.game.objects.append(object)
 
+    def create_ground_tile(self,x,y,w,h):
+        ground = Ground(x,y,w,h)
+        return self.create_object(ground)
+
     def create_simple_tree(self,x,y,w,h):
-        tree = SimpleTree(x,y,w,h)
+        tree = Birch(x,y,w,h)
         return self.create_object(tree)
 
     def draw_elements(self):
@@ -570,7 +606,7 @@ class Game(ClientGame, KeyBoardControll):
     elements = {}
     objects  = []
     size = [800,600]
-    fps = 1
+    fps = 10
 
     player = None
 
@@ -580,11 +616,20 @@ class Game(ClientGame, KeyBoardControll):
         self.create_map()
 
     def create_map(self):
-        tree1 = SimpleTree(200,290,90,160)
-        tree2 = SimpleTree(400, 290, 90, 160)
+        tree1 = Birch(200,290,90,160)
+        tree2 = Pine(400, 290, 90, 160)
 
-        print('>>>',tree1.position.x)
-        print('>>>',tree2.position.x)
+        #while do chão
+        y = 0
+        while y < 600:
+            x = 0
+            while x < 800:
+                self.manager.create_ground_tile(x,y,50,50)
+                x += 50
+            y = y + 50
+
+        #print('>>>',tree1.position.x)
+        #print('>>>',tree2.position.x)
         self.objects.append(tree1)
         self.objects.append(tree2)
         #self.manager.create_simple_tree(200,290,90,160)
