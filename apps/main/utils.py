@@ -1,4 +1,6 @@
 import math
+
+
 class Coordinate:
 
     x = 0
