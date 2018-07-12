@@ -655,6 +655,31 @@ class Game(ClientGame, KeyBoardControll):
         self.data_game = self.get_data_from_server()
         return player
 
+    def verify_new_players(self):
+        if len(self.elements) != len(self.data_game['players']):
+            for item in self.data_game['players']:
+                if item not in self.elements:
+                    if type(self.data_game['players'][item]['position']) == str:
+                        position_parts = self.data_game['players'][item]['position'].split(',')
+                    else:
+                        position_parts = self.data_game['players'][item]['position']
+
+                    if type(self.data_game['players'][item]['destination']) == str:
+                        destination_parts = self.data_game['players'][item]['destination'].split(',')
+                    else:
+                        destination_parts = self.data_game['players'][item]['destination']
+
+                    x = int(position_parts[0])
+                    y = int(position_parts[1])
+                    position = Coordinate(x, y)
+                    new_player = self.manager.create_player(self.data_game['players'][item]['name'], self.data_game['players'][item]['char'], position)
+
+                    if destination_parts is not None:
+                        dx = int(destination_parts[0])
+                        dy = int(destination_parts[1])
+                        new_player.destination = Coordinate(dx, dy)
+
+
     def start(self, player_name, char_number):
         self.data_game = self.verify_data_server()
         self.player = self.create_player(player_name, char_number)
@@ -673,10 +698,9 @@ class Game(ClientGame, KeyBoardControll):
             request_events = self.verify_events()
             if request_events['data']['destination'] != None:
                 self.send_data_to_server(request_events, log=False)
-                response_events = self.get_data_from_server()
-
-            self.data_game = self.verify_data_server(log=False)
-            #response_events = self.get_data_from_server()
+                self.data_game = self.get_data_from_server()
+            else:
+                self.data_game = self.verify_data_server(log=False)
 
             if len(self.elements) != len(self.data_game['players']):
                 for item in self.data_game['players']:
@@ -700,11 +724,6 @@ class Game(ClientGame, KeyBoardControll):
                             dx = int(destination_parts[0])
                             dy = int(destination_parts[1])
                             new_player.destination = Coordinate(dx, dy)
-
-
-
-
-
 
             self.screen.fill(WHITE)
             self.manager.draw_objects()
