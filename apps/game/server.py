@@ -73,7 +73,7 @@ class ClientThread(threading.Thread):
         request['id'] = event_number
         request['status'] = True
         DATA_SERVER['events'][self.client_name] = request#[event_number] = request
-        return DATA_SERVER['events']#[self.client_name]#[event_number]
+        return DATA_SERVER#['events']#[self.client_name]#[event_number]
 
     def increment_users_online(self, request):
         DATA_SERVER['players'][self.client_name] = request['player']
@@ -87,8 +87,7 @@ class ClientThread(threading.Thread):
 
     def move_player(self,request):
         DATA_SERVER['players'][self.client_name]['position'] = request['data']['position']
-        events = self.save_event(request)
-        self.response(events)
+        self.response(self.save_event(request))
 
     def response(self,request):
         self.send_data_to_client(request)
