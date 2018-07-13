@@ -87,6 +87,8 @@ class ClientThread(threading.Thread):
 
     def move_player(self,request):
         DATA_SERVER['players'][self.client_name]['position'] = request['data']['position']
+        DATA_SERVER['players'][self.client_name]['destination'] = request['data']['destination']
+        DATA_SERVER['players'][self.client_name]['running'] = request['data']['running']
         self.response(self.save_event(request))
 
     def response(self,request):
@@ -106,26 +108,6 @@ class ClientThread(threading.Thread):
 
                 elif request['command'] == 'move':
                     self.move_player(request)
-                    #self.increment_event_number()
-                    #event_number = self.get_event_number()
-                    #DATA_SERVER['events'][self.client_name][event_number] = {'id': event_number, 'request': request, 'status':True}
-
-                    """
-                    response_list = []
-                    diff_events = DATA_SERVER['events']['event_counter'] - request['event_counter']
-
-                    if diff_events>1:
-                        request_event_id = request['event_counter']+1
-                        last_event_id = DATA_SERVER['events']['event_counter']
-                        for item in range(request_event_id,last_event_id):
-                            response_list.append(DATA_SERVER['events'][item])
-                    elif diff_events==1:
-                        response_list.append(DATA_SERVER['events'][self.client_name][event_number])
-                    else:
-                        print("A DIFERENCA ENTRE O CONTADOR DE EVENTO DO CLIENTE E SERVIDOR DEU ZERO OU MENOR.. ESTRANHO")
-                    
-                    self.send_data_to_client(response_list)
-                    """
 
                 elif request['command'] == "verify_server":
                     # response['command'] = request['command']
@@ -137,44 +119,7 @@ class ClientThread(threading.Thread):
 
             else:
                 break
-            """
-            if request is not None:
-                if request['command']=="update":
-                    response['command'] = request['command']
-                    response["status"] = "accept"
-                    response['data'] = DATA_SERVER
-                    response['events'] = EVENTS_SERVER
-                    self.send_data_to_client(response)
 
-                elif request['command']=="create_player":
-                    self.client_name = request['player']['name']
-                    DATA_SERVER[request['player']['name']] = request['player']
-                    EVENTS_SERVER['events'] = request['command']
-                    EVENTS_SERVER['events_values'] = request['player']
-                    response['command'] = request['command']
-                    response["status"] = "accept"
-                    response['data'] = DATA_SERVER
-                    response['events'] = EVENTS_SERVER
-                    self.send_data_to_client(response)
-                    #print("VEJA O QUE SOBROU DATA_SERVER: ",DATA_SERVER)
-
-                elif request['command'] == "verify_server":
-                    #response['command'] = request['command']
-                    #response["status"] = "accept"
-                    #response['data'] = DATA_SERVER
-                    #response['events'] = EVENTS_SERVER
-                    self.send_data_to_client(response)
-
-                elif response['command'] == 'exit':
-                    response = {'command': 'exit', 'status': 'accept'}
-                    self.send_data_to_client(response)
-                    break
-                else:
-                    response = {'command': 'nothing', 'status': 'accept'}
-                    self.send_data_to_client(response)
-            else:
-                break
-            """
         DATA_SERVER['players'].pop(self.client_name)
         print("Client at ", self.client_address, " disconnected...")
         sys.exit()
