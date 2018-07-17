@@ -1,7 +1,6 @@
 from apps.game.vars import SOUTH_WEST, NORTH_WEST, SOUTH_EAST, NORTH_EAST, WEST, SOUTH, EAST, NORTH, CHARACTERS_DIRS, BLACK
 from apps.main.utils import Coordinate
 from survive import settings
-
 import random
 import pygame
 import os
@@ -15,8 +14,11 @@ class Object:
     height = None
     position = None
 
-    def __init__(self, x, y, w, h):
-        self.image = pygame.image.load(self.image_path)
+    def __init__(self, x, y, w, h, image_path=None):
+        if image_path is not None:
+            self.image = pygame.image.load(image_path)
+        else:
+            self.image = pygame.image.load(self.image_path)
         self.image = pygame.transform.scale(self.image, (w, h))
         self.height = self.image.get_height()
         self.width = self.image.get_width()
@@ -174,6 +176,8 @@ class Character(Element):
     destination = None
     is_player = None
 
+
+
     def __init__(self, player_name, char_number, position=None, is_player=False):
         self.name = player_name
         self.is_player = is_player
@@ -183,6 +187,18 @@ class Character(Element):
         walking_diagonal_directions_images = self.image_path + "animation_walking_extra.png"
         running_simple_directions_images = self.image_path + "animation_running_base.png"
         running_diagonal_directions_images = self.image_path + "animation_running_extra.png"
+
+        self.health = 100
+        self.max_health = 100
+
+        self.energy = 100
+        self.max_energy = 100
+
+        self.regen_energy = 1
+        self.running_coust_energy = 1
+
+        self.level = 1
+        self.experience = 0
 
         if position is None:
             init_x = random.randint(50, 750)
@@ -217,16 +233,26 @@ class Character(Element):
             if self.is_player:
                 keys = pygame.key.get_pressed()
                 if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
-                    self.running = True
-                    current_speed = self.speed*2
-                    self.current_animation = self.animations['running']
+                    if self.energy > 0:
+                        self.running = True
+                        current_speed = self.speed*2
+                        self.energy = self.energy - self.running_coust_energy
+                        self.current_animation = self.animations['running']
+                    else:
+                        self.running = False
+                        current_speed = self.speed
+                        self.current_animation = self.animations['walking']
+
                 else:
                     self.running = False
                     current_speed = self.speed
+                    if self.energy < self.max_energy:
+                        self.energy = self.energy + self.regen_energy
                     self.current_animation = self.animations['walking']
             else:
                 if self.running:
                     current_speed = self.speed * 2
+                    #self.energy = self.energy - self.running_coust_energy
                     self.current_animation = self.animations['running']
                 else:
                     current_speed = self.speed
@@ -277,6 +303,8 @@ class Character(Element):
                     self.stop()
             self.current_animation.update()
         else:
+            if self.energy < self.max_energy:
+                self.energy = self.energy + self.regen_energy
             self.origin = self.get_center_image()
         screen.blit(self.current_animation.current_image, self.get_position(), self.current_animation.get_current_sprite())
 
@@ -324,8 +352,11 @@ class Character(Element):
 
     def get_data(self):
         position = str(self.position.x) + "," + str(self.position.y)
-        data = {"name": self.name, "char": self.char_number, "position": position, "destination": self.get_destination(),"running":self.running}
+        data = {"name": self.name, "char": self.char_number, "position": position, "destination": self.get_destination(),"running":self.running,"health":self.health,"max_health":self.max_health,
+                "energy": self.energy, "max_energy": self.max_energy
+                }
         return data
 
     def serialize(self):
         return {'name': self.name, 'char': self.char_number, 'position': self.get_position(), "destination": self.get_destination(),"running":self.running}
+

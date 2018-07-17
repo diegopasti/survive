@@ -1,10 +1,48 @@
 from apps.game.controllers.controllers import KeyBoardControll, ClientGame
-from apps.game.objects.characters import Character
+from apps.game.objects.characters import Character, Object
 from apps.game.objects.trees import Birch, Pine
 from apps.game.objects.tiles import Ground
 from apps.main.utils import Coordinate
 from apps.game.vars import WHITE
 import pygame
+import json
+
+from survive.settings import BASE_DIR
+from apps.game.objects.characters import Object
+
+
+class Panel(Object):
+    image_path = BASE_DIR + "/static/images/panel.png"
+    objects = []
+
+    def __init__(self):
+        Object.__init__(self,122,580,956,120)
+        self.empty_health = Object(284, 583, 96, 96, BASE_DIR + "/static/images/empty.png")
+        self.empty_energy = Object(818, 585, 96, 96, BASE_DIR + "/static/images/empty.png")
+
+        self.health = Object(284, 583, 96, 96, BASE_DIR + "/static/images/health.png")
+        self.energy = Object(818, 585, 96, 96, BASE_DIR + "/static/images/mana.png")
+
+        self.objects.append(self.empty_health)
+        self.objects.append(self.empty_energy)
+
+
+    def update(self, game):
+        for item in self.objects:
+            image = item.image
+            rect = item.image.get_rect()
+            game.screen.blit(image, (item.position.x, item.position.y), rect)
+
+        percent_health = round(game.player.health/game.player.max_health,2)
+        rect = pygame.Rect(0, (self.health.height-(percent_health*self.health.height)), self.health.width, self.health.height)
+        game.screen.blit(self.health.image,(self.health.position.x,self.health.position.y+((1-percent_health)*self.health.height)),rect)
+
+        percent_energy = round(game.player.energy / game.player.max_energy, 2)
+        rect = pygame.Rect(0, (self.energy.height - (percent_energy * self.energy.height)), self.energy.width, self.energy.height)
+        game.screen.blit(self.energy.image, (self.energy.position.x, self.energy.position.y + ((1 - percent_energy) * self.energy.height)), rect)
+
+        rect = self.image.get_rect()
+        game.screen.blit(self.image, (self.position.x, self.position.y), rect)
 
 
 class Manager:
@@ -25,8 +63,12 @@ class Manager:
         ground = Ground(x,y,w,h)
         return self.create_object(ground)
 
-    def create_simple_tree(self,x,y,w,h):
+    def create_birch_tree(self,x,y,w,h):
         tree = Birch(x,y,w,h)
+        return self.create_object(tree)
+    
+    def create_pine_tree(self,x,y,w,h):
+        tree = Pine(x,y,w,h)
         return self.create_object(tree)
 
     def draw_elements(self):
@@ -39,6 +81,15 @@ class Manager:
             imagerect = item.image.get_rect()
             self.game.screen.blit(image,(item.position.x,item.position.y), imagerect)
 
+    def draw_controls(self):
+        self.game.panel.update(self.game)
+        #rect = self.game.panel.image.get_rect()
+        #self.game.screen.blit(self.game.panel.image, (self.game.panel.position.x, self.game.panel.position.y), rect)
+        #image = item.image
+        #imagerect = item.image.get_rect()
+        #self.game.screen.blit(image, (item.position.x, item.position.y), imagerect)
+
+
 
 class Game(ClientGame, KeyBoardControll):
     BUFFER_SIZE = 4096
@@ -48,7 +99,7 @@ class Game(ClientGame, KeyBoardControll):
 
     elements = {}
     objects  = []
-    size = [800,600]
+    size = [1200,700]
     fps = 8
 
     player = None
@@ -58,26 +109,40 @@ class Game(ClientGame, KeyBoardControll):
         self.setup()
         self.manager = Manager(self)
         self.create_map()
+        self.create_panel()
 
     def create_map(self):
-        tree1 = Birch(200,290,90,160)
-        tree2 = Pine(400, 290, 90, 160)
+        file_map = open('maps/main.json','r').read()
+        map = json.loads(file_map)
+        tile_size = map['tile_size']
+        cont_row = 0
+        for registros in map['objects']:
+            cont_col = 0
+            for item in registros:
+                if item == "G":
+                    self.manager.create_ground_tile(cont_col*tile_size, cont_row * tile_size, 100, 100)
+                elif item == "P":
+                    self.manager.create_ground_tile(cont_col*tile_size, cont_row * tile_size, 100, 100)
+                    self.manager.create_pine_tree(cont_col*tile_size, cont_row*tile_size, 90, 160)
+                elif item == "B":
+                    self.manager.create_ground_tile(cont_col*tile_size, cont_row * tile_size, 100, 100)
+                    self.manager.create_birch_tree(cont_col*tile_size, cont_row*tile_size, 90, 160)
+                cont_col = cont_col + 1
+            cont_row = cont_row + 1
 
-        #while do chão
-        y = 0
-        while y < 600:
-            x = 0
-            while x < 800:
-                self.manager.create_ground_tile(x,y,50,50)
-                x += 50
-            y = y + 50
+    def create_panel(self):
+        self.panel = Panel()
+        #empty_health = Object(184,483,96,96,BASE_DIR+"/static/images/empty.png")
+        #empty_energy = Object(718, 485, 96, 96, BASE_DIR + "/static/images/empty.png")
 
-        #print('>>>',tree1.position.x)
-        #print('>>>',tree2.position.x)
-        self.objects.append(tree1)
-        self.objects.append(tree2)
-        #self.manager.create_simple_tree(200,290,90,160)
-        #self.manager.create_simple_tree(400, 290, 90, 160)
+        #health = Object(184, 483, 96, 96, BASE_DIR + "/static/images/health.png")
+        #energy = Object(718, 485, 96, 96, BASE_DIR + "/static/images/mana.png")
+        #self.objects.append(empty_health)
+        #self.objects.append(health)
+
+        #self.objects.append(empty_energy)
+        #self.objects.append(energy)
+        #self.objects.append(panel)
 
     def setup(self):
         ClientGame.__init__(self, self.server_address,self.server_port)
@@ -150,6 +215,7 @@ class Game(ClientGame, KeyBoardControll):
             self.update_server_changes()
             self.screen.fill(WHITE)
             self.manager.draw_objects()
+            self.manager.draw_controls()
             self.manager.draw_elements()
             pygame.display.flip()
             self.clock.tick(self.fps)

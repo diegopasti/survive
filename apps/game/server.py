@@ -89,6 +89,10 @@ class ClientThread(threading.Thread):
         DATA_SERVER['players'][self.client_name]['position'] = request['data']['position']
         DATA_SERVER['players'][self.client_name]['destination'] = request['data']['destination']
         DATA_SERVER['players'][self.client_name]['running'] = request['data']['running']
+        DATA_SERVER['players'][self.client_name]['health'] = request['data']['health']
+        DATA_SERVER['players'][self.client_name]['max_health'] = request['data']['max_health']
+        DATA_SERVER['players'][self.client_name]['energy'] = request['data']['energy']
+        DATA_SERVER['players'][self.client_name]['max_energy'] = request['data']['max_energy']
         self.response(self.save_event(request))
 
     def response(self,request):
@@ -126,4 +130,4 @@ class ClientThread(threading.Thread):
 
 
 if __name__=="__main__":
-    Server("127.0.0.1","9000").start()
+    Server("0.0.0.0","9000").start()
