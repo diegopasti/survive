@@ -122,14 +122,20 @@ class ClientThread(threading.Thread):
                 self.create_enemy("monstro" + str(len(DATA_SERVER['enemies'])), 3)
 
         for item in DATA_SERVER['enemies']:
-            direction = random.randint(0,8)
             intention = random.randint(0,10)
-            if intention <= 2:
-                print(item,"decidiu parar")
-            elif intention <= 6:
-                print(item, "manter a direcao")
-            elif intention == 2:
-                print(item, "mudar a direcao")
+            if intention <= 1:
+                DATA_SERVER['enemies'][item]['destination'] = str(random.randint(50, 1150)) + "," + str(random.randint(50, 650))
+                #DATA_SERVER['enemies'][item]['destination'] = None
+                #print(item,"decidiu parar")
+            #else:
+            #    DATA_SERVER['enemies'][item]['destination'] = str(random.randint(50, 1150)) + "," + str(random.randint(50, 650))
+            #    #position_parts = DATA_SERVER['enemies'][item]['destination'].split(',')
+            #    #position = position_parts[0],position_parts[1]
+            #    #speed = DATA_SERVER['enemies'][item]['speed']
+            #    #DATA_SERVER['enemies'][item]['destination']
+            #    print(item, "manter a direcao")
+            #elif intention == 2:
+            #    print(item, "mudar a direcao")
 
 
     def run(self):
