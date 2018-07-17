@@ -60,8 +60,8 @@ class Manager:
         self.game.objects.append(object)
 
     def create_ground_tile(self,x,y,w,h):
-        ground = Ground(x,y,w,h)
-        return self.create_object(ground)
+        return Ground(x,y,w,h)
+        #return self.create_object(ground)
 
     def create_birch_tree(self,x,y,w,h):
         tree = Birch(x,y,w,h)
@@ -75,8 +75,18 @@ class Manager:
         for item in self.game.elements:
             self.game.elements[item].update(self.game.screen)
 
+    def draw_enemies(self):
+        for item in self.game.enemies:
+            self.game.enemies[item].update(self.game.screen)
+
     def draw_objects(self):
         for item in self.game.objects:
+            image = item.image
+            imagerect = item.image.get_rect()
+            self.game.screen.blit(image,(item.position.x,item.position.y), imagerect)
+
+    def draw_ground(self):
+        for item in self.game.ground:
             image = item.image
             imagerect = item.image.get_rect()
             self.game.screen.blit(image,(item.position.x,item.position.y), imagerect)
@@ -98,7 +108,9 @@ class Game(ClientGame, KeyBoardControll):
     data_game = {}
 
     elements = {}
+    enemies = {}
     objects  = []
+    ground = []
     size = [1200,700]
     fps = 8
 
@@ -115,8 +127,20 @@ class Game(ClientGame, KeyBoardControll):
         file_map = open('maps/main.json','r').read()
         map = json.loads(file_map)
         tile_size = map['tile_size']
-        cont_row = 0
-        for registros in map['objects']:
+
+
+        cont_linha = 0
+        while cont_linha < (self.size[1]/ tile_size):
+            cont_coluna = 0
+            while cont_coluna < (self.size[0]/tile_size):
+                ground = self.manager.create_ground_tile(cont_coluna*tile_size, cont_linha*tile_size, tile_size, tile_size)
+                self.ground.append(ground)
+                cont_coluna = cont_coluna + 1
+            cont_linha = cont_linha + 1
+
+
+
+        """for registros in map['objects']:
             cont_col = 0
             for item in registros:
                 if item == "G":
@@ -129,6 +153,7 @@ class Game(ClientGame, KeyBoardControll):
                     self.manager.create_birch_tree(cont_col*tile_size, cont_row*tile_size, 90, 160)
                 cont_col = cont_col + 1
             cont_row = cont_row + 1
+        """
 
     def create_panel(self):
         self.panel = Panel()
@@ -150,7 +175,7 @@ class Game(ClientGame, KeyBoardControll):
         print('Starting Client.')
         pygame.init()
         pygame.display.set_caption("Survive!")
-        self.screen = pygame.display.set_mode(self.size)
+        self.screen = pygame.display.set_mode(self.size) #, pygame.FULLSCREEN) # pygame.RESIZABLE)
         self.clock = pygame.time.Clock()
         pygame.mouse.set_visible(True)
 
@@ -191,7 +216,21 @@ class Game(ClientGame, KeyBoardControll):
                         dy = int(destination_parts[1])
                         new_player.destination = Coordinate(dx, dy)
 
+    def verify_new_enemies(self):
+        if len(self.data_game['enemies']) > len(self.enemies):
+            for monster_name in self.data_game['enemies']:
+                if monster_name not in self.enemies:
+                    position_parts = self.data_game['enemies'][monster_name]['position'].split(',')
+                    x = int(position_parts[0])
+                    y = int(position_parts[1])
+                    position = Coordinate(x, y)
+                    new_monster = Character(self.data_game['enemies'][monster_name]['name'], self.data_game['enemies'][monster_name]['char_number'],position)
+                    #new_monster = Character(self.data_game['enemies'][monster_name]['name'], self.data_game['enemies'][monster_name]['char_number'],position)
+                    self.enemies[monster_name] = new_monster
+
+
     def update_server_changes(self):
+        self.verify_new_enemies()
         self.verify_new_players()
         for char in self.data_game['players']:
             if char != self.player.name:
@@ -201,6 +240,23 @@ class Game(ClientGame, KeyBoardControll):
                     self.elements[char].move_to(destination,running=running)
                 else:
                     self.elements[char].stop()
+
+        for char in self.data_game['enemies']:
+            if self.data_game['enemies'][char]['destination']:
+                destination_parts = self.data_game['enemies'][char]['destination'].split(',')
+                destination_x = float(destination_parts[0])
+                destination_y = float(destination_parts[1])
+                destination = (destination_x,destination_y)
+                running = self.data_game['enemies'][char]['running']
+                self.enemies[char].move_to(destination,running=running)
+
+                if self.enemies[char].destination_distance is not None:
+                    if self.enemies[char].destination_distance < 20:
+                        self.data_game['enemies'][char]['destination'] = None
+                        self.enemies[char].stop()
+            else:
+                self.enemies[char].stop()
+
 
     def start(self, player_name, char_number):
         self.data_game = self.verify_data_server()
@@ -214,11 +270,14 @@ class Game(ClientGame, KeyBoardControll):
 
             self.update_server_changes()
             self.screen.fill(WHITE)
+            self.manager.draw_ground()
             self.manager.draw_objects()
             self.manager.draw_controls()
             self.manager.draw_elements()
+            self.manager.draw_enemies()
             pygame.display.flip()
             self.clock.tick(self.fps)
+
         self.send_data_to_server({"command": "exit", "player": self.player.get_data()})
         self.close()
         pygame.quit()

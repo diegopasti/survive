@@ -174,8 +174,8 @@ class Character(Element):
 
     walking = None
     destination = None
+    destination_distance = None
     is_player = None
-
 
 
     def __init__(self, player_name, char_number, position=None, is_player=False):
@@ -194,8 +194,8 @@ class Character(Element):
         self.energy = 100
         self.max_energy = 100
 
-        self.regen_energy = 1
-        self.running_coust_energy = 1
+        self.regen_energy = 0.5
+        self.running_coust_energy = 0.5
 
         self.level = 1
         self.experience = 0

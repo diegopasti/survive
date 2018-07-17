@@ -1,4 +1,5 @@
 import json
+import random
 import socket, threading
 
 import sys
@@ -7,8 +8,8 @@ DATA_SERVER = {}
 DATA_SERVER['events'] = {}
 DATA_SERVER['event_counter'] = 0
 DATA_SERVER['players_online'] = 0
-DATA_SERVER['players']  = {}
-
+DATA_SERVER['players'] = {}
+DATA_SERVER['enemies'] = {}
 
 EVENTS_SERVER = {}
 
@@ -85,6 +86,22 @@ class ClientThread(threading.Thread):
         self.save_event(request)
         self.response(DATA_SERVER)
 
+    def create_enemy(self,name,image_number):
+        DATA_SERVER['enemies'][name] = {}
+        DATA_SERVER['enemies'][name]['char_number'] = image_number
+        DATA_SERVER['enemies'][name]['name'] = name
+
+        current_position = random.randint(50,1150),random.randint(50,650)
+        DATA_SERVER['enemies'][name]['speed'] = 4
+        DATA_SERVER['enemies'][name]['direction'] = 0
+        DATA_SERVER['enemies'][name]['position'] = str(current_position[0])+","+str(current_position[1])
+        DATA_SERVER['enemies'][name]['destination'] = str(random.randint(50,1150))+","+str(random.randint(50,650))
+        DATA_SERVER['enemies'][name]['running'] = False
+        DATA_SERVER['enemies'][name]['health'] = 100
+        DATA_SERVER['enemies'][name]['max_health'] = 100
+        DATA_SERVER['enemies'][name]['energy'] = 100
+        DATA_SERVER['enemies'][name]['max_energy'] = 100
+
     def move_player(self,request):
         DATA_SERVER['players'][self.client_name]['position'] = request['data']['position']
         DATA_SERVER['players'][self.client_name]['destination'] = request['data']['destination']
@@ -98,12 +115,32 @@ class ClientThread(threading.Thread):
     def response(self,request):
         self.send_data_to_client(request)
 
+    def verify_enemies(self):
+        if len(DATA_SERVER['enemies']) < 4:
+            aleatory_time = random.randint(1, 10)
+            if aleatory_time <= 2:
+                self.create_enemy("monstro" + str(len(DATA_SERVER['enemies'])), 3)
+
+        for item in DATA_SERVER['enemies']:
+            direction = random.randint(0,8)
+            intention = random.randint(0,10)
+            if intention <= 2:
+                print(item,"decidiu parar")
+            elif intention <= 6:
+                print(item, "manter a direcao")
+            elif intention == 2:
+                print(item, "mudar a direcao")
+
+
     def run(self):
         print("server: Process started with", self.client_address)
         #self.client_socket.send(bytes("Hi, This is from Server..",'utf-8'))
         response = {}
 
+
         while True:
+            self.verify_enemies()
+
             request = self.verify_message(log=False)
             if request is not None:
                 if request['command'] == "create_player":

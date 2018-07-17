@@ -45,6 +45,12 @@ class KeyBoardControll:
     def verify_events(self):
         keys = pygame.key.get_pressed()
         for event in pygame.event.get():
+            if event.type == pygame.VIDEORESIZE:
+                #self.size[0],self.size[1] = event.size
+                #self.grounds = []
+                #self.create_map()
+                pass
+
             if event.type == pygame.QUIT:
                 self.done = False
             if event.type == pygame.MOUSEBUTTONUP:
@@ -55,7 +61,7 @@ class KeyBoardControll:
                 else:
                     self.player.move_to(new_position, running=False)
 
-        request_event = {'player':self.player.name, 'command':'move', 'data':{'position':self.player.get_position(),'destination': self.player.get_destination(),'running':self.player.running}}
+        request_event = {'player':self.player.name, 'command':'move', 'data':self.player.get_data()}
         return request_event
 
         """

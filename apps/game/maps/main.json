@@ -1,13 +1,11 @@
 {
-	"name":"main",
-	"tile_size":100,
-	"objects":[
-		["G","G","G","G","G","G","G","G","G","G","G","G"],
-		["G","G","G","G","G","G","G","P","G","G","G","G"],
-		["G","B","G","G","G","G","G","G","P","G","G","G"],
-		["G","G","G","G","G","G","G","G","G","G","G","G"],
-		["G","G","P","P","G","G","G","G","G","G","G","G"],
-		["G","G","G","G","G","G","G","G","G","G","G","G"],
-		["G","G","G","G","G","G","G","G","G","G","G","G"]
+	"name": "main",
+	"tile_size": 50,
+	"base_ground": "G",
+	"extra_ground": [],
+	"objects": [
+		{"id": "B","position":"150,220"},
+		{"id": "P","position":"550,430"}
 	]
+
 }
