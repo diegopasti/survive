@@ -177,6 +177,8 @@ class Character(Element):
     destination_distance = None
     is_player = None
 
+    object_rect = None
+
 
     def __init__(self, player_name, char_number, position=None, is_player=False):
         self.name = player_name
@@ -212,6 +214,12 @@ class Character(Element):
         self.current_animation = self.animations['walking']
         self.set_size(self.current_animation.current_image.get_width() / 8, self.current_animation.current_image.get_height() / 4)
 
+        self.rect_offset = 10
+        self.rect_shadow_offset = 18
+        self.rect_top_offset = 40
+        self.object_rect = pygame.Rect(self.position.x+self.rect_offset,self.position.y+self.rect_top_offset,self.width-self.rect_offset-self.rect_shadow_offset,self.height-self.rect_top_offset)
+
+
     def move_to(self, position, show_router=False, running=False):
         self.destination = Coordinate(position[0], position[1])
         self.show_router = show_router
@@ -222,9 +230,11 @@ class Character(Element):
         y = self.position.y + self.height / 2
         return Coordinate(x, y)
 
-    def update(self, screen):
+    def update(self, screen, game):
+        self.game = game
         if self.destination is not None:
             self.origin = self.get_center_image()
+            pygame.draw.rect(screen, BLACK, (self.object_rect.x+self.rect_offset, self.object_rect.y, self.object_rect.width-self.rect_offset,self.object_rect.height), 1)
             if self.show_router:
                 pygame.draw.line(screen, BLACK, [self.origin.x, self.origin.y], [self.destination.x, self.destination.y], 1)
             self.destination_distance = self.origin.get_distance(self.destination)
@@ -319,29 +329,59 @@ class Character(Element):
             variacao_y = variacao_y * -1
 
         self.current_animation.change_direction(direction)
+        new_position_x = self.position.x
+        new_position_y = self.position.y
+
         if direction == NORTH:
-            self.position.y = self.position.y - variacao_y
+            new_position_y = new_position_y - variacao_y
+            #self.position.y = self.position.y - variacao_y
+
         elif direction == EAST:
-            self.position.x = self.position.x + variacao_x
+            #self.position.x = self.position.x + variacao_x
+            new_position_x = new_position_x + variacao_x
+
         elif direction == SOUTH:
-            self.position.y = self.position.y + variacao_y
+            new_position_y = new_position_y + variacao_y
+            #self.position.y = self.position.y + variacao_y
+
         elif direction == WEST:
-            self.position.x = self.position.x - variacao_x
+            #self.position.x = self.position.x - variacao_x
+            new_position_x = new_position_x - variacao_x
 
         elif direction == NORTH_EAST:
-            self.position.y = self.position.y - variacao_y
-            self.position.x = self.position.x + variacao_x
+            new_position_x = new_position_x + variacao_x
+            new_position_y = new_position_y - variacao_y
+            #self.position.y = self.position.y - variacao_y
+            #self.position.x = self.position.x + variacao_x
+
         elif direction == SOUTH_EAST:
-            self.position.x = self.position.x + variacao_x
-            self.position.y = self.position.y + variacao_y
+            new_position_y = new_position_y + variacao_y
+            new_position_x = new_position_x + variacao_x
+
         elif direction == SOUTH_WEST:
-            self.position.x = self.position.x - variacao_x
-            self.position.y = self.position.y + variacao_y
+            new_position_x = new_position_x - variacao_x
+            new_position_y = new_position_y + variacao_y
+
         elif direction == NORTH_WEST:
-            self.position.x = self.position.x - variacao_x
-            self.position.y = self.position.y - variacao_y
+            new_position_x = new_position_x - variacao_x
+            new_position_y = new_position_y - variacao_y
+
         else:
             pass
+
+        vai_colidir = False
+        test_rect = pygame.Rect(new_position_x+self.rect_offset,new_position_y+self.rect_top_offset,self.width-self.rect_offset-self.rect_shadow_offset,self.height-self.rect_top_offset)
+        for enemie in self.game.enemies:
+            if self.game.enemies[enemie].name != self.name:
+                vai_colidir = test_rect.colliderect(self.game.enemies[enemie].object_rect)
+                if vai_colidir:
+                    print(self.name, self.object_rect, " VAI COLIDIR COM:", self.game.enemies[enemie].name, self.game.enemies[enemie].object_rect)
+                    self.stop()
+                else:
+                    self.object_rect = test_rect
+                    self.position.x = new_position_x
+                    self.position.y = new_position_y
+
 
     def stop(self):
         self.walking = None

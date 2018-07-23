@@ -73,11 +73,11 @@ class Manager:
 
     def draw_elements(self):
         for item in self.game.elements:
-            self.game.elements[item].update(self.game.screen)
+            self.game.elements[item].update(self.game.screen, self.game)
 
     def draw_enemies(self):
         for item in self.game.enemies:
-            self.game.enemies[item].update(self.game.screen)
+            self.game.enemies[item].update(self.game.screen, self.game)
 
     def draw_objects(self):
         for item in self.game.objects:
@@ -206,8 +206,8 @@ class Game(ClientGame, KeyBoardControll):
                     else:
                         destination_parts = self.data_game['players'][item]['destination']
 
-                    x = int(position_parts[0])
-                    y = int(position_parts[1])
+                    x = float(position_parts[0])
+                    y = float(position_parts[1])
                     position = Coordinate(x, y)
                     new_player = self.manager.create_player(self.data_game['players'][item]['name'], self.data_game['players'][item]['char'], position)
 
