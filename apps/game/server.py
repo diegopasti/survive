@@ -118,8 +118,9 @@ class ClientThread(threading.Thread):
     def verify_enemies(self):
         if len(DATA_SERVER['enemies']) < 4:
             aleatory_time = random.randint(1, 10)
+            aleatory_char = random.randint(2, 10)
             if aleatory_time <= 2:
-                self.create_enemy("monstro" + str(len(DATA_SERVER['enemies'])), 3)
+                self.create_enemy("monstro" + str(len(DATA_SERVER['enemies'])), aleatory_char)
 
         for item in DATA_SERVER['enemies']:
             intention = random.randint(0,10)
